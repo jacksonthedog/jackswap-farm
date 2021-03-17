@@ -1,6 +1,6 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const CakeToken = artifacts.require('CakeToken');
+const CakeToken = artifacts.require('JackToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('libs/MockBEP20');
@@ -103,7 +103,7 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
     assert.equal((await this.cake.balanceOf(alice)).toString(), '15');
   });
 
-  it('emergencyWithdraw', async () => {});
+  it('emergencyWithdraw', async () => { });
 
   it('update admin', async () => {
     this.lottery = await LotteryRewardPool.new(

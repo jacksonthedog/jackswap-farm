@@ -1,11 +1,11 @@
 pragma solidity 0.6.12;
 
-import '@pancakeswap/pancake-swap-lib/contracts/math/SafeMath.sol';
-import '@pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol';
-import '@pancakeswap/pancake-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
-import '@pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol';
+import "@pancakeswap/pancake-swap-lib/contracts/math/SafeMath.sol";
+import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol";
+import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/SafeBEP20.sol";
+import "@pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol";
 
-import "./CakeToken.sol";
+import "./JackToken.sol";
 import "./SyrupBar.sol";
 
 // import "@nomiclabs/buidler/console.sol";
@@ -36,16 +36,16 @@ contract MasterChef is Ownable {
 
     // Info of each user.
     struct UserInfo {
-        uint256 amount;     // How many LP tokens the user has provided.
+        uint256 amount; // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         //
         // We do some fancy math here. Basically, any point in time, the amount of CAKEs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accCakePerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accJackPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accCakePerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accJackPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -53,20 +53,20 @@ contract MasterChef is Ownable {
 
     // Info of each pool.
     struct PoolInfo {
-        IBEP20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. CAKEs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that CAKEs distribution occurs.
-        uint256 accCakePerShare; // Accumulated CAKEs per share, times 1e12. See below.
+        IBEP20 lpToken; // Address of LP token contract.
+        uint256 allocPoint; // How many allocation points assigned to this pool. CAKEs to distribute per block.
+        uint256 lastRewardBlock; // Last block number that CAKEs distribution occurs.
+        uint256 accJackPerShare; // Accumulated CAKEs per share, times 1e12. See below.
     }
 
     // The CAKE TOKEN!
-    CakeToken public cake;
+    JackToken public jack;
     // The SYRUP TOKEN!
     SyrupBar public syrup;
     // Dev address.
     address public devaddr;
     // CAKE tokens created per block.
-    uint256 public cakePerBlock;
+    uint256 public jackPerBlock;
     // Bonus muliplier for early cake makers.
     uint256 public BONUS_MULTIPLIER = 1;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
@@ -75,7 +75,7 @@ contract MasterChef is Ownable {
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
-    mapping (uint256 => mapping (address => UserInfo)) public userInfo;
+    mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when CAKE mining starts.
@@ -83,31 +83,36 @@ contract MasterChef is Ownable {
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
-    event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event EmergencyWithdraw(
+        address indexed user,
+        uint256 indexed pid,
+        uint256 amount
+    );
 
     constructor(
-        CakeToken _cake,
+        JackToken _jack,
         SyrupBar _syrup,
         address _devaddr,
-        uint256 _cakePerBlock,
+        uint256 _jackPerBlock,
         uint256 _startBlock
     ) public {
-        cake = _cake;
+        jack = _jack;
         syrup = _syrup;
         devaddr = _devaddr;
-        cakePerBlock = _cakePerBlock;
+        jackPerBlock = _jackPerBlock;
         startBlock = _startBlock;
 
         // staking pool
-        poolInfo.push(PoolInfo({
-            lpToken: _cake,
-            allocPoint: 1000,
-            lastRewardBlock: startBlock,
-            accCakePerShare: 0
-        }));
+        poolInfo.push(
+            PoolInfo({
+                lpToken: _jack,
+                allocPoint: 1000,
+                lastRewardBlock: startBlock,
+                accJackPerShare: 0
+            })
+        );
 
         totalAllocPoint = 1000;
-
     }
 
     function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
@@ -120,30 +125,43 @@ contract MasterChef is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) public onlyOwner {
+    function add(
+        uint256 _allocPoint,
+        IBEP20 _lpToken,
+        bool _withUpdate
+    ) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
-        uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
+        uint256 lastRewardBlock =
+            block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
-        poolInfo.push(PoolInfo({
-            lpToken: _lpToken,
-            allocPoint: _allocPoint,
-            lastRewardBlock: lastRewardBlock,
-            accCakePerShare: 0
-        }));
+        poolInfo.push(
+            PoolInfo({
+                lpToken: _lpToken,
+                allocPoint: _allocPoint,
+                lastRewardBlock: lastRewardBlock,
+                accJackPerShare: 0
+            })
+        );
         updateStakingPool();
     }
 
     // Update the given pool's CAKE allocation point. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+    function set(
+        uint256 _pid,
+        uint256 _allocPoint,
+        bool _withUpdate
+    ) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
         uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         if (prevAllocPoint != _allocPoint) {
-            totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
+            totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(
+                _allocPoint
+            );
             updateStakingPool();
         }
     }
@@ -156,7 +174,9 @@ contract MasterChef is Ownable {
         }
         if (points != 0) {
             points = points.div(3);
-            totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(points);
+            totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(
+                points
+            );
             poolInfo[0].allocPoint = points;
         }
     }
@@ -179,22 +199,36 @@ contract MasterChef is Ownable {
     }
 
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+    function getMultiplier(uint256 _from, uint256 _to)
+        public
+        view
+        returns (uint256)
+    {
         return _to.sub(_from).mul(BONUS_MULTIPLIER);
     }
 
     // View function to see pending CAKEs on frontend.
-    function pendingCake(uint256 _pid, address _user) external view returns (uint256) {
+    function pendingJack(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256)
+    {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accCakePerShare = pool.accCakePerShare;
+        uint256 accJackPerShare = pool.accJackPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accCakePerShare = accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
+            uint256 multiplier =
+                getMultiplier(pool.lastRewardBlock, block.number);
+            uint256 jackReward =
+                multiplier.mul(jackPerBlock).mul(pool.allocPoint).div(
+                    totalAllocPoint
+                );
+            accJackPerShare = accJackPerShare.add(
+                jackReward.mul(1e12).div(lpSupply)
+            );
         }
-        return user.amount.mul(accCakePerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accJackPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -204,7 +238,6 @@ contract MasterChef is Ownable {
             updatePool(pid);
         }
     }
-
 
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
@@ -218,53 +251,66 @@ contract MasterChef is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        cake.mint(devaddr, cakeReward.div(10));
-        cake.mint(address(syrup), cakeReward);
-        pool.accCakePerShare = pool.accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
+        uint256 jackReward =
+            multiplier.mul(jackPerBlock).mul(pool.allocPoint).div(
+                totalAllocPoint
+            );
+        jack.mint(devaddr, jackReward.div(10));
+        jack.mint(address(syrup), jackReward);
+        pool.accJackPerShare = pool.accJackPerShare.add(
+            jackReward.mul(1e12).div(lpSupply)
+        );
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for CAKE allocation.
+    // Deposit LP tokens to MasterChef for JACK allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
-
-        require (_pid != 0, 'deposit CAKE by staking');
+        require(_pid != 0, "deposit CAKE by staking");
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
-                safeCakeTransfer(msg.sender, pending);
+            uint256 pending =
+                user.amount.mul(pool.accJackPerShare).div(1e12).sub(
+                    user.rewardDebt
+                );
+            if (pending > 0) {
+                safeJackTransfer(msg.sender, pending);
             }
         }
         if (_amount > 0) {
-            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            pool.lpToken.safeTransferFrom(
+                address(msg.sender),
+                address(this),
+                _amount
+            );
             user.amount = user.amount.add(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accJackPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
-
-        require (_pid != 0, 'withdraw CAKE by unstaking');
+        require(_pid != 0, "withdraw JACK by unstaking");
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
 
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
-        if(pending > 0) {
-            safeCakeTransfer(msg.sender, pending);
+        uint256 pending =
+            user.amount.mul(pool.accJackPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+        if (pending > 0) {
+            safeJackTransfer(msg.sender, pending);
         }
-        if(_amount > 0) {
+        if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accJackPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -274,16 +320,23 @@ contract MasterChef is Ownable {
         UserInfo storage user = userInfo[0][msg.sender];
         updatePool(0);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
-                safeCakeTransfer(msg.sender, pending);
+            uint256 pending =
+                user.amount.mul(pool.accJackPerShare).div(1e12).sub(
+                    user.rewardDebt
+                );
+            if (pending > 0) {
+                safeJackTransfer(msg.sender, pending);
             }
         }
-        if(_amount > 0) {
-            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+        if (_amount > 0) {
+            pool.lpToken.safeTransferFrom(
+                address(msg.sender),
+                address(this),
+                _amount
+            );
             user.amount = user.amount.add(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accJackPerShare).div(1e12);
 
         syrup.mint(msg.sender, _amount);
         emit Deposit(msg.sender, 0, _amount);
@@ -295,15 +348,18 @@ contract MasterChef is Ownable {
         UserInfo storage user = userInfo[0][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(0);
-        uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
-        if(pending > 0) {
-            safeCakeTransfer(msg.sender, pending);
+        uint256 pending =
+            user.amount.mul(pool.accJackPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+        if (pending > 0) {
+            safeJackTransfer(msg.sender, pending);
         }
-        if(_amount > 0) {
+        if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accJackPerShare).div(1e12);
 
         syrup.burn(msg.sender, _amount);
         emit Withdraw(msg.sender, 0, _amount);
@@ -320,8 +376,8 @@ contract MasterChef is Ownable {
     }
 
     // Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.
-    function safeCakeTransfer(address _to, uint256 _amount) internal {
-        syrup.safeCakeTransfer(_to, _amount);
+    function safeJackTransfer(address _to, uint256 _amount) internal {
+        syrup.safeJackTransfer(_to, _amount);
     }
 
     // Update dev address by the previous dev.

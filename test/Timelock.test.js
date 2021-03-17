@@ -1,6 +1,6 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const ethers = require('ethers');
-const CakeToken = artifacts.require('CakeToken');
+const CakeToken = artifacts.require('JackToken');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('libs/MockBEP20');
 const Timelock = artifacts.require('Timelock');

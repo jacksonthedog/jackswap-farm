@@ -1,6 +1,6 @@
 const { advanceBlockTo } = require('@openzeppelin/test-helpers/src/time');
 const { assert } = require('chai');
-const CakeToken = artifacts.require('CakeToken');
+const CakeToken = artifacts.require('JackToken');
 const SyrupBar = artifacts.require('SyrupBar');
 
 contract('SyrupBar', ([alice, bob, carol, dev, minter]) => {
@@ -31,13 +31,13 @@ contract('SyrupBar', ([alice, bob, carol, dev, minter]) => {
       '0'
     );
     await this.cake.mint(this.syrup.address, 1000, { from: minter });
-    await this.syrup.safeCakeTransfer(bob, 200, { from: minter });
+    await this.syrup.safeJackTransfer(bob, 200, { from: minter });
     assert.equal((await this.cake.balanceOf(bob)).toString(), '200');
     assert.equal(
       (await this.cake.balanceOf(this.syrup.address)).toString(),
       '800'
     );
-    await this.syrup.safeCakeTransfer(bob, 2000, { from: minter });
+    await this.syrup.safeJackTransfer(bob, 2000, { from: minter });
     assert.equal((await this.cake.balanceOf(bob)).toString(), '1000');
   });
 });
