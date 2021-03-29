@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "ganache": "npx hardhat run --network ganache ./scripts/deploy.js",
-    "compile": "mpx hardhat compile",
+    "compile": "npx hardhat compile",
     "test": "npx builder test",
     "coverage": "npx builder coverage"
   },
