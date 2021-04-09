@@ -7,13 +7,13 @@ module.exports = {
   //
   networks: {
     ganache: {
-      host: "127.0.0.1",
+      url: "http://127.0.0.1:8545",
       port: 8545,
-      network_id: "*",
+      network_id: 97,
     },
-    test: {
-      host: "127.0.0.1",
-      port: 7545,
+    staging: {
+      url: "http://52.203.139.141:8545",
+      port: 8545,
       network_id: "*",
     },
   },
